@@ -68,3 +68,7 @@ keys/
 
 # dotenv environment variables file
 .env
+
+.vscode/
+
+.gitignore
