@@ -63,7 +63,9 @@ exports.signUp = (req, res) => {
       if (err.code === "auth/email-already-in-use") {
         return res.status(400).json({ email: "Email já registrado" });
       } else {
-        return res.status(500).json({ error: err.code });
+        return res
+          .status(500)
+          .json({ general: "Algo deu errado, tente novamente" });
       }
     });
 };
@@ -91,11 +93,10 @@ exports.login = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      if (err.code === "auth/wrong-password") {
-        return res
-          .status(400)
-          .json({ Senha: "Senha incorreta. Tente novamente." });
-      } else return res.status(500).json({ error: err.code });
+
+      return res
+        .status(400)
+        .json({ Senha: "Dados incorretos. Tente novamente." });
     });
 };
 
@@ -111,6 +112,45 @@ exports.addUserDetails = (req, res) => {
     .catch((err) => {
       console.error(err);
       return res.status(500).json({ error: err.code });
+    });
+};
+
+//Pegar informações de qualquer usuário
+
+exports.getUserDetails = (req, res) => {
+  let userData = {};
+  db.doc(`/users/${req.params.handle}`)
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        userData.user = doc.data();
+        return db
+          .collection("posts")
+          .where("userHandle", "==", req.params.handle)
+          .orderBy("createdAt", "desc")
+          .get();
+      } else {
+        return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+    })
+    .then((data) => {
+      userData.posts = [];
+      data.forEach((doc) => {
+        userData.posts.push({
+          body: doc.data().body,
+          createdAt: doc.data().createdAt,
+          userHandle: doc.data().userHandle,
+          userImage: doc.data().userImage,
+          likeCount: doc.data().likeCount,
+          commentCount: doc.data().commentCount,
+          postId: doc.id,
+        });
+      });
+      return res.json(userData);
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.stats(500).json({ error: err.code });
     });
 };
 
@@ -216,4 +256,23 @@ exports.uploadImage = (req, res) => {
       });
   });
   busboy.end(req.rawBody);
+};
+
+//Marcar notificações como lidas
+
+exports.markNotificationsRead = (req, res) => {
+  let batch = db.batch();
+  req.body.forEach((notificationId) => {
+    const notification = db.doc(`/notifications/${notificationId}`);
+    batch.update(notification, { read: true });
+  });
+  batch
+    .commit()
+    .then(() => {
+      return res.json({ message: "Notificações marcadas como lidas" });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
+    });
 };

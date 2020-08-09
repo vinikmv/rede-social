@@ -11,6 +11,7 @@ exports.getAllPosts = (req, res) => {
           postId: doc.id,
           commentCount: doc.data().commentCount,
           likeCount: doc.data().likeCount,
+          userImage: doc.data().userImage,
           ...doc.data(),
         });
       });
@@ -78,7 +79,7 @@ exports.getPost = (req, res) => {
 
 exports.commentOnPost = (req, res) => {
   if (req.body.body.trim() === "")
-    return res.status(400).json({ Erro: "Campo não pode estar vazio" });
+    return res.status(400).json({ comment: "Campo não pode estar vazio" });
 
   const newComment = {
     body: req.body.body,
